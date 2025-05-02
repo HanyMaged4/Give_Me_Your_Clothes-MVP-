@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "username": "alice",
+      "hashedPassword": "hashed_password_1",
+      "itemsForRent": [],
+      "rentedItems": []
+    },
+    {
+      "username": "testuser",
+      "hashedPassword": "hashed_password_2",
+      "itemsForRent": [],
+      "rentedItems": []
+    }
+  ]
+}

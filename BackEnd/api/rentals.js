@@ -5,13 +5,23 @@ const dataFilePath = path.join(__dirname, '../data/data.json');
 
 // Helper function to read data
 function readData() {
-  const data = fs.readFileSync(dataFilePath, 'utf8');
-  return JSON.parse(data);
+  try {
+    const data = fs.readFileSync(dataFilePath, 'utf8');
+    return JSON.parse(data);
+  } catch (error) {
+    console.error('Error reading data file:', error);
+    throw new Error('Could not read data file');
+  }
 }
 
 // Helper function to write data
 function writeData(data) {
-  fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf8');
+  try {
+    fs.writeFileSync(dataFilePath, JSON.stringify(data, null, 2), 'utf8');
+  } catch (error) {
+    console.error('Error writing to data file:', error);
+    throw new Error('Could not write to data file');
+  }
 }
 
 // Get all users and their rental items
@@ -67,9 +77,9 @@ function deleteUser(req, res) {
     return res.status(404).json({ error: 'User not found' });
   }
 
-  const deletedUser = data.users.splice(userIndex, 1);
+  const [deletedUser] = data.users.splice(userIndex, 1); // Use destructuring to get the deleted user
   writeData(data);
-  res.json(deletedUser);
+  res.json({ username: deletedUser.username }); // Return the deleted user's username
 }
 
 // Get all clothes for a specific user
@@ -143,6 +153,64 @@ function deleteClothingItem(req, res) {
   res.json(deletedItem);
 }
 
+// Get all rented items for a specific user
+function getRentedItems(req, res) {
+  const data = readData();
+  const { username } = req.params;
+  const user = data.users.find(u => u.username === username);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  res.json(user.rentedItems || []);
+}
+
+// Add a rented item for a specific user
+function addRentedItem(req, res) {
+  const data = readData();
+  const { username } = req.params;
+  const user = data.users.find(u => u.username === username);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  if (!user.rentedItems) {
+    user.rentedItems = [];
+  }
+
+  const newRentedItem = req.body;
+  user.rentedItems.push(newRentedItem);
+  writeData(data);
+  res.status(201).json(newRentedItem);
+}
+
+// Remove a rented item for a specific user
+function deleteRentedItem(req, res) {
+  const data = readData();
+  const { username, itemId } = req.params;
+  const user = data.users.find(u => u.username === username);
+
+  if (!user) {
+    return res.status(404).json({ error: 'User not found' });
+  }
+
+  if (!user.rentedItems) {
+    return res.status(404).json({ error: 'No rented items found for this user' });
+  }
+
+  const rentedIndex = user.rentedItems.findIndex(item => item.itemId == itemId);
+
+  if (rentedIndex === -1) {
+    return res.status(404).json({ error: 'Rented item not found' });
+  }
+
+  const [deletedItem] = user.rentedItems.splice(rentedIndex, 1); // Use destructuring to get the deleted item
+  writeData(data);
+  res.json({ itemId: deletedItem.itemId }); // Return the deleted item's itemId
+}
+
 module.exports = {
   getAllUsers,
   getUser,
@@ -153,4 +221,7 @@ module.exports = {
   addClothingItem,
   updateClothingItem,
   deleteClothingItem,
+  getRentedItems,
+  addRentedItem,
+  deleteRentedItem,
 };
